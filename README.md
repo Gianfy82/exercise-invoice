@@ -52,5 +52,9 @@ Total: 74.68
 ## SOLUTION
 
 The requirement hs been accomplished separating concerns in a typical pipeline READER->PROCESSOR->WRITER
+
 The choice is not to leverage on any framework or tools as they would have been overkilling. The goal is to write clean code and show a good approach to tests.
-Note the evaluation pipeline has been designed for speed and to keep the memory footprint low. See exercise-invoice/invoicing/src/test/java/it/slager/exercises/invoicing/inttest/InvoicingEndToEndIT.java test case as an entry point for code inspection.
+
+Note the evaluation pipeline has been designed for speed and to keep the memory footprint low.
+
+See exercise-invoice/invoicing/src/test/java/it/slager/exercises/invoicing/inttest/InvoicingEndToEndIT.java test case as an entry point for code inspection.
