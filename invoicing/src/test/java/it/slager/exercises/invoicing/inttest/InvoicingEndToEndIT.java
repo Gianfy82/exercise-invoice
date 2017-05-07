@@ -43,6 +43,16 @@ public class InvoicingEndToEndIT {
 		printer = new InvoicePrinter();
 	}
 
+	/**
+	 * Every test case is an array of three elements:
+	 * <ul>
+	 * <li>Test ID</li>
+	 * <li>String array containing items</li>
+	 * <li>String with the excepted invoice output</li>
+	 * </ul>
+	 * 
+	 * @return
+	 */
 	@Parameters(name = "{0}")
 	public static Collection<Object[]> data() {
 		ArrayList<Object[]> testCases = new ArrayList<>();

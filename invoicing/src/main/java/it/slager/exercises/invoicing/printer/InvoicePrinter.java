@@ -3,6 +3,7 @@ package it.slager.exercises.invoicing.printer;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
+import java.util.Formatter;
 
 import it.slager.exercises.invoicing.model.ReceiptItem;
 
@@ -15,6 +16,8 @@ import it.slager.exercises.invoicing.model.ReceiptItem;
  */
 public class InvoicePrinter {
 	private Writer output;
+
+	Formatter currencyPrinter;
 
 	private PrinterState state;
 
@@ -67,11 +70,16 @@ public class InvoicePrinter {
 		output.write(item.getDescription());
 
 		output.write(": ");
-		output.write(netItem.add(taxItem).toString());
+		writeCurrency(netItem.add(taxItem));
 
 		output.write(System.lineSeparator());
 	}
 
+	/**
+	 * Mark the invoice as closed and print the receipt summary.
+	 * 
+	 * @throws IOException
+	 */
 	public void closeInvoice() throws IOException {
 		// Update state machine
 		switch (state) {
@@ -82,10 +90,21 @@ public class InvoicePrinter {
 			throw new IllegalStateException("Cannot close an invoice when in state " + state);
 		}
 
-		output.write("Sales Taxes: " + taxTotal);
+		output.write("Sales Taxes: ");
+		writeCurrency(taxTotal);
 		output.write(System.lineSeparator());
-		output.write("Total: " + netTotal.add(taxTotal));
+		output.write("Total: ");
+		writeCurrency(netTotal.add(taxTotal));
 
+	}
+
+	/**
+	 * Print the given value with 2 decimal places.
+	 * 
+	 * @param value
+	 */
+	private void writeCurrency(BigDecimal value) {
+		currencyPrinter.format("%.2f", value);
 	}
 
 	/**
@@ -96,6 +115,7 @@ public class InvoicePrinter {
 	 */
 	public void setWriter(Writer out) {
 		this.output = out;
+		this.currencyPrinter = new Formatter(output);
 	}
 
 }
