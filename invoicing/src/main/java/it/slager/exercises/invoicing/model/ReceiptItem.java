@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * A POJO representing a receipt item.
+ * 
  * @author g.slager
  *
  */
@@ -11,11 +12,13 @@ public class ReceiptItem {
 	private int amount;
 	private String description;
 	private BigDecimal netUnitPrice;
-	
+
 	/**
 	 * true if the item is imported
 	 */
 	private boolean imported;
+
+	private BigDecimal taxUnitPrice;
 
 	public int getAmount() {
 		return amount;
@@ -47,6 +50,14 @@ public class ReceiptItem {
 
 	public void setImported(boolean imported) {
 		this.imported = imported;
+	}
+
+	public BigDecimal getTaxUnitPrice() {
+		return taxUnitPrice;
+	}
+
+	public void setTaxUnitPrice(BigDecimal taxUnitPrice) {
+		this.taxUnitPrice = taxUnitPrice;
 	}
 
 	@Override
@@ -91,6 +102,5 @@ public class ReceiptItem {
 		return "ReceiptItem [amount=" + amount + ", description=" + description + ", netUnitPrice=" + netUnitPrice
 				+ ", imported=" + imported + "]";
 	}
-	
-	
+
 }
