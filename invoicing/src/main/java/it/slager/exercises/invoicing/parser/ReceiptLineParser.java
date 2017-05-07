@@ -41,7 +41,7 @@ public class ReceiptLineParser {
 
 		// Parsing amount
 		String token = tokenizer.nextToken();
-		item.setAmount(Integer.parseUnsignedInt(token));
+		item.setAmount(Integer.parseInt(token));
 		state = ReceiptLineParserState.AMOUNT_READ;
 
 		token = tokenizer.nextToken();
