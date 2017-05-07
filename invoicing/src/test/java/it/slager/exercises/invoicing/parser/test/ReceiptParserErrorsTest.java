@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import it.slager.exercises.invoicing.parser.ReceiptLineParser;
+import it.slager.exercises.invoicing.parser.ReceiptParseException;
 
 public class ReceiptParserErrorsTest {
 
@@ -15,12 +16,12 @@ public class ReceiptParserErrorsTest {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testEmptyLine() {
+	public void testEmptyLine() throws ReceiptParseException {
 		parser.parse("");
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testNullLine() {
+	public void testNullLine() throws ReceiptParseException {
 		parser.parse(null);
 	}
 }

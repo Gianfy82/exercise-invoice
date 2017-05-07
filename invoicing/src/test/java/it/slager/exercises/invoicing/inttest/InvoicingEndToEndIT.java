@@ -16,6 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import it.slager.exercises.invoicing.model.ReceiptItem;
 import it.slager.exercises.invoicing.parser.ReceiptLineParser;
+import it.slager.exercises.invoicing.parser.ReceiptParseException;
 import it.slager.exercises.invoicing.printer.InvoicePrinter;
 import it.slager.exercises.invoicing.processor.ReceiptItemTaxEvaluator;
 
@@ -39,7 +40,7 @@ public class InvoicingEndToEndIT {
 	@BeforeClass
 	public static void setupEndToEnd() {
 		parser = new ReceiptLineParser("imported", "at");
-		taxEvaluator = new ReceiptItemTaxEvaluator("0.10", "0.05");
+		taxEvaluator = new ReceiptItemTaxEvaluator("0.10", "0.05", "0.05");
 		printer = new InvoicePrinter();
 	}
 
@@ -102,7 +103,7 @@ public class InvoicingEndToEndIT {
 	}
 
 	@Test
-	public void test() throws IOException {
+	public void test() throws IOException, ReceiptParseException {
 
 		// Printer setup
 		StringWriter sw = new StringWriter();

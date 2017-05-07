@@ -15,6 +15,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import it.slager.exercises.invoicing.model.ReceiptItem;
 import it.slager.exercises.invoicing.parser.ReceiptLineParser;
+import it.slager.exercises.invoicing.parser.ReceiptParseException;
 
 @RunWith(Parameterized.class)
 public class ReceiptParserTest {
@@ -72,7 +73,7 @@ public class ReceiptParserTest {
 	}
 
 	@Test
-	public void test() {
+	public void test() throws ReceiptParseException {
 
 		ReceiptItem actualItem = parser.parse(inputLine);
 

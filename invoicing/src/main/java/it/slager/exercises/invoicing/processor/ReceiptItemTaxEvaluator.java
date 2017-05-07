@@ -21,6 +21,7 @@ import it.slager.exercises.invoicing.model.ReceiptItem;
 public class ReceiptItemTaxEvaluator {
 	private final BigDecimal taxRatio;
 	private final BigDecimal taxRatioImportedGoods;
+	private final BigDecimal taxPrecision;
 
 	/**
 	 * @param taxRatio
@@ -30,33 +31,49 @@ public class ReceiptItemTaxEvaluator {
 	 *            the ratio to calculate taxation added to imported goods as
 	 *            <code>import_tax = net_price * ratio</code>
 	 */
-	public ReceiptItemTaxEvaluator(String taxRatio, String taxRatioImportedGoods) {
+	public ReceiptItemTaxEvaluator(String taxRatio, String taxRatioImportedGoods, String taxPrecision) {
 		this.taxRatio = new BigDecimal(taxRatio);
 		this.taxRatioImportedGoods = new BigDecimal(taxRatioImportedGoods);
+		this.taxPrecision = new BigDecimal(taxPrecision);
 	}
 
-	public void evaluateTaxation(ReceiptItem inputItem) {
+	/**
+	 * Evaluate taxes for the given item.<br/>
+	 * Taxes apply to the unit price, without considering the good amount.<br/>
+	 * The method updates the item adding taxes.
+	 * 
+	 * @param item
+	 */
+	public void evaluateTaxation(ReceiptItem item) {
 		BigDecimal tax;
-		if (isBasicGood(inputItem)) {
+
+		// Evaluate tax for goods
+		if (isBasicGood(item)) {
 			tax = BigDecimal.ZERO;
 		} else {
-			tax = inputItem.getNetUnitPrice().multiply(taxRatio);
+			tax = item.getNetUnitPrice().multiply(taxRatio);
 		}
 
-		if (inputItem.isImported()) {
-			BigDecimal importedTax = inputItem.getNetUnitPrice().multiply(taxRatioImportedGoods);
+		// Add taxation for imported items
+		if (item.isImported()) {
+			BigDecimal importedTax = item.getNetUnitPrice().multiply(taxRatioImportedGoods);
 			tax = tax.add(importedTax);
 		}
 
-		inputItem.setTaxUnitPrice(roundTaxation(tax));
+		// Set taxation with rounding
+		item.setTaxUnitPrice(roundTaxation(tax));
 	}
 
+	/**
+	 * @param tax
+	 * @return the given tax, rounded up to the first multiple of taxPrecision
+	 */
 	private BigDecimal roundTaxation(BigDecimal tax) {
-		BigDecimal remainder = tax.remainder(new BigDecimal("0.05"));
+		BigDecimal remainder = tax.remainder(taxPrecision);
 		if (remainder.compareTo(BigDecimal.ZERO) == 0) {
 			return tax;
 		} else {
-			return tax.add(new BigDecimal("0.05")).subtract(remainder);
+			return tax.add(taxPrecision).subtract(remainder);
 		}
 	}
 
@@ -65,7 +82,7 @@ public class ReceiptItemTaxEvaluator {
 	 * among those describing basic goods.
 	 * 
 	 * @param inputItem
-	 * @return true if the item is a basoc good
+	 * @return true if the item is a basic good
 	 */
 	private boolean isBasicGood(ReceiptItem inputItem) {
 		String[] basicGoods = new String[] { "book", "chocolate", "pills" };

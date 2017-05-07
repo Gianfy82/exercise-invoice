@@ -1,6 +1,7 @@
 package it.slager.exercises.invoicing.parser;
 
 import java.math.BigDecimal;
+import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
 import it.slager.exercises.invoicing.model.ReceiptItem;
@@ -8,11 +9,6 @@ import it.slager.exercises.invoicing.model.ReceiptItem;
 public class ReceiptLineParser {
 
 	private final String importedKeyword;
-
-	/**
-	 * Track parser state. Handful to inspect parse errors.
-	 */
-	private ReceiptLineParserState state;
 
 	private String descriptionTerminator;
 
@@ -23,57 +19,61 @@ public class ReceiptLineParser {
 	}
 
 	/**
-	 * @param receiptLine
+	 * @param receiptElement
 	 *            a non empty-line
 	 * @return
+	 * @throws ReceiptParseException
 	 */
-	public ReceiptItem parse(String receiptLine) {
+	public ReceiptItem parse(String receiptElement) throws ReceiptParseException {
 		// Preliminary check
-		if (receiptLine == null || receiptLine.isEmpty()) {
+		if (receiptElement == null || receiptElement.isEmpty()) {
 			throw new IllegalArgumentException("Can't parse an empty or null line");
 		}
 
-		state = ReceiptLineParserState.INIT;
-
 		ReceiptItem item = new ReceiptItem();
+		ReceiptLineParserState state = ReceiptLineParserState.INIT;
+		String token = null;
+		try {
 
-		StringTokenizer tokenizer = new StringTokenizer(receiptLine);
+			StringTokenizer tokenizer = new StringTokenizer(receiptElement);
 
-		// Parsing amount
-		String token = tokenizer.nextToken();
-		item.setAmount(Integer.parseInt(token));
-		state = ReceiptLineParserState.AMOUNT_READ;
-
-		token = tokenizer.nextToken();
-		StringBuilder descriptionAppender = new StringBuilder();
-
-		// Imported or first description element
-		if (importedKeyword.equals(token)) {
-			item.setImported(true);
-
-			// Consuming first description token
-			state = ReceiptLineParserState.CONSUMING_DESCRIPTION;
+			// Parsing amount
 			token = tokenizer.nextToken();
-			if (descriptionTerminator.equals(token)) {
-				// FIXME throw a proper exception
+			item.setAmount(Integer.parseInt(token));
+			state = ReceiptLineParserState.AMOUNT_READ;
+
+			token = tokenizer.nextToken();
+			StringBuilder descriptionAppender = new StringBuilder();
+
+			// Imported or first description element
+			if (importedKeyword.equals(token)) {
+				item.setImported(true);
+
+				// Consuming first description token
+				state = ReceiptLineParserState.CONSUMING_DESCRIPTION;
+				token = tokenizer.nextToken();
+				if (descriptionTerminator.equals(token)) {
+					throw new IllegalStateException("Unexpected token");
+				} else {
+					descriptionAppender.append(token);
+				}
 			} else {
 				descriptionAppender.append(token);
 			}
-		} else {
-			descriptionAppender.append(token);
-		}
 
-		// Consume the (remaining) description, until 'at' token
-		while (!descriptionTerminator.equals(token = tokenizer.nextToken())) {
-			descriptionAppender.append(" ");
-			descriptionAppender.append(token);
-		}
-		item.setDescription(descriptionAppender.toString());
-		state = ReceiptLineParserState.CONSUMING_PRICE;
+			// Consume the (remaining) description, until 'at' token
+			while (!descriptionTerminator.equals(token = tokenizer.nextToken())) {
+				descriptionAppender.append(" ");
+				descriptionAppender.append(token);
+			}
+			item.setDescription(descriptionAppender.toString());
+			state = ReceiptLineParserState.CONSUMING_PRICE;
 
-		// Consume net price
-		item.setNetUnitPrice(new BigDecimal(tokenizer.nextToken()));
-		state = ReceiptLineParserState.END;
+			// Consume net price
+			item.setNetUnitPrice(new BigDecimal(tokenizer.nextToken()));
+		} catch (NumberFormatException | NoSuchElementException e) {
+			throw new ReceiptParseException("Exception occurred on token:" + token + " and parser state:" + state, e);
+		}
 
 		return item;
 	}

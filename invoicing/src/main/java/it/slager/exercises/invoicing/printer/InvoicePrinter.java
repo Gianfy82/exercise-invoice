@@ -15,15 +15,31 @@ import it.slager.exercises.invoicing.model.ReceiptItem;
  *
  */
 public class InvoicePrinter {
+	/**
+	 * The Writer instance the InvoicePrinter uses to print the invoice
+	 */
 	private Writer output;
 
-	Formatter currencyPrinter;
+	/**
+	 * Encapsulate the way to format currencies to the output.
+	 */
+	private Formatter currencyPrinter;
 
+	/**
+	 * An InvoicePrinter implements a state machine, to ensure the caller not to
+	 * bring the printer to an inconsistent state.
+	 */
 	private PrinterState state;
 
-	private BigDecimal taxTotal;
-
+	/**
+	 * Accumulates the total net price for all the goods in the invoice
+	 */
 	private BigDecimal netTotal;
+
+	/**
+	 * Accumulates the total tax amount for all the goods in the invoice
+	 */
+	private BigDecimal taxTotal;
 
 	/**
 	 * Reset the InvoicePrinter to a steady state, able to print a new invoice.
@@ -86,6 +102,9 @@ public class InvoicePrinter {
 		case PRINTING_ITEMS:
 			state = PrinterState.CLOSED_INVOICE;
 			break;
+		case CLOSED_INVOICE:
+			// Do nothing and return
+			return;
 		default:
 			throw new IllegalStateException("Cannot close an invoice when in state " + state);
 		}
