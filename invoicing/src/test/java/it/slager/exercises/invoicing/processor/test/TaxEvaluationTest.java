@@ -76,7 +76,7 @@ public class TaxEvaluationTest {
 
 	@Before
 	public void setupParser() {
-		evaluator = new ReceiptItemTaxEvaluator(new BigDecimal("0.10"), new BigDecimal("0.05"));
+		evaluator = new ReceiptItemTaxEvaluator("0.10", "0.05");
 	}
 
 	@Test

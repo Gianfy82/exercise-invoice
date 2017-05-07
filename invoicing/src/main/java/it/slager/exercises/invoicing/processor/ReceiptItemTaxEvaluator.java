@@ -30,9 +30,9 @@ public class ReceiptItemTaxEvaluator {
 	 *            the ratio to calculate taxation added to imported goods as
 	 *            <code>import_tax = net_price * ratio</code>
 	 */
-	public ReceiptItemTaxEvaluator(BigDecimal taxRatio, BigDecimal taxRatioImportedGoods) {
-		this.taxRatio = taxRatio;
-		this.taxRatioImportedGoods = taxRatioImportedGoods;
+	public ReceiptItemTaxEvaluator(String taxRatio, String taxRatioImportedGoods) {
+		this.taxRatio = new BigDecimal(taxRatio);
+		this.taxRatioImportedGoods = new BigDecimal(taxRatioImportedGoods);
 	}
 
 	public void evaluateTaxation(ReceiptItem inputItem) {
