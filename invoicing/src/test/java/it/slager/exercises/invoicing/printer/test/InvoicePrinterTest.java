@@ -105,6 +105,9 @@ public class InvoicePrinterTest {
 
 		printer.closeInvoice();
 
+		// Calling closeInvoice more than once has no effect
+		printer.closeInvoice();
+
 		// Assertions
 		// @formatter:off
 		String expectedTest2 = "1 imported box of chocolates: 10.50" + System.lineSeparator()
