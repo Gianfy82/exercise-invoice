@@ -68,6 +68,7 @@ public class ReceiptItem {
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + (imported ? 1231 : 1237);
 		result = prime * result + ((netUnitPrice == null) ? 0 : netUnitPrice.hashCode());
+		result = prime * result + ((taxUnitPrice == null) ? 0 : taxUnitPrice.hashCode());
 		return result;
 	}
 
@@ -94,13 +95,18 @@ public class ReceiptItem {
 				return false;
 		} else if (!netUnitPrice.equals(other.netUnitPrice))
 			return false;
+		if (taxUnitPrice == null) {
+			if (other.taxUnitPrice != null)
+				return false;
+		} else if (!taxUnitPrice.equals(other.taxUnitPrice))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "ReceiptItem [amount=" + amount + ", description=" + description + ", netUnitPrice=" + netUnitPrice
-				+ ", imported=" + imported + "]";
+				+ ", imported=" + imported + ", taxUnitPrice=" + taxUnitPrice + "]";
 	}
 
 }
