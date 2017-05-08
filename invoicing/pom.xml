@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>it.slager.exercises</groupId>
 	<artifactId>invoicing</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<name>invoicing</name>
 	<properties>
 		<maven.compiler.source>1.7</maven.compiler.source>
