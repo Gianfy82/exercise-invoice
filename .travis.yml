@@ -1,7 +1,6 @@
 language: java
 jdk:
   - oraclejdk8
-before_script: cd invoicing
 addons:
   sonarqube:
       organization: "gianfy82-github"
