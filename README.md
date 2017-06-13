@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Gianfy82/exercise-invoice.svg?branch=master)](https://travis-ci.org/Gianfy82/exercise-invoice)
+
 # exercise-invoice
 This is an exercise about invoice printing. The focus is on clean code, code transferability and testability
 
