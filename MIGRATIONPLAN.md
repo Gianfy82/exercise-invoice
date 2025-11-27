@@ -200,7 +200,7 @@ java -jar invoice-processor.jar /path/to/input.txt
 
 **Actions**:
 1. Create multi-stage `Dockerfile`:
-   - Build stage: Use Maven image to build the application
+   - Build stage: Use Maven image to build and test the application
    - Runtime stage: Use slim JRE 21 image for final container
 2. Configure entry point for CLI execution
 3. Optimize image size
@@ -212,7 +212,7 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
@@ -223,7 +223,8 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 **Verification**:
 - Docker image builds successfully
-- Image size is reasonable (< 300MB)
+- Tests pass during image build
+- Image size is optimized (target: < 300MB, based on Alpine JRE base ~200MB + app ~50MB)
 
 #### Step 3.2: Docker Compose and CI/CD Integration
 **Priority**: MEDIUM | **Risk**: LOW | **Estimated Time**: 1 hour
