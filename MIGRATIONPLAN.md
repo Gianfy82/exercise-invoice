@@ -1,8 +1,18 @@
-# Migration Plan: Java 7 to Java 21 LTS + Spring Framework Refactoring
+# Migration Plan: Java 7 to Java 21 LTS + Spring Batch Refactoring
+
+## Stakeholder Decisions (Confirmed)
+
+| Decision | Answer |
+|----------|--------|
+| Java Version | **Java 21** (Latest LTS) |
+| Spring Framework Approach | **Spring Batch** |
+| Application Type | **CLI** (Keep CLI interface) |
+| CLI Breaking Changes | **Allowed** (dataflow must work as-is) |
+| Deployment | **Docker Image** |
 
 ## Executive Summary
 
-This document outlines the migration strategy for upgrading the invoice processing application from Java 7 to Java 21 LTS and refactoring it to use the Spring Framework.
+This document outlines the migration strategy for upgrading the invoice processing application from Java 7 to Java 21 LTS and refactoring it to use Spring Batch. The application will be packaged and delivered as a Docker image.
 
 ## Current State Analysis
 
@@ -87,53 +97,63 @@ src/main/java/it/slager/exercises/invoicing/
 - All tests pass
 - Code style remains consistent
 
-### Phase 2: Spring Framework Integration
+### Phase 2: Spring Batch Integration
 
-#### Step 2.1: Spring Boot Setup
+#### Step 2.1: Spring Boot + Spring Batch Setup
 **Priority**: HIGH | **Risk**: MEDIUM | **Estimated Time**: 2 hours
 
-**Decision Point**: Choose between:
-1. **Spring Boot with Spring Batch** (Recommended for batch processing)
-2. **Spring Boot with custom pipeline** (Simpler, closer to current design)
+**Approach**: Implement using **Spring Batch** to leverage batch processing capabilities.
 
-**Recommendation**: Start with **Spring Boot + Custom Pipeline**, then evaluate Spring Batch if needed.
-
-**Rationale**:
-- Current application is lightweight and well-structured
-- Spring Batch adds complexity that may not be necessary for this use case
-- Easier to maintain existing test coverage
-- Can migrate to Spring Batch later if requirements change
+**Benefits of Spring Batch**:
+- Built-in support for chunk-oriented processing (Reader → Processor → Writer)
+- Job monitoring and restart capabilities
+- Transaction management
+- Scalability options for future growth
+- Industry standard for batch processing
 
 **Actions**:
-1. Add Spring Boot starter dependencies:
-   - spring-boot-starter (core)
-   - spring-boot-starter-test (testing)
+1. Add Spring Boot and Spring Batch dependencies:
+   - spring-boot-starter-batch
+   - spring-boot-starter-test
+   - h2 (for batch job metadata storage)
 2. Create Spring Boot main application class
 3. Add `application.properties` / `application.yml` configuration
 
 **Verification**:
 - Spring Boot application starts successfully
-- Dependency injection works
+- Batch job metadata is stored correctly
 
-#### Step 2.2: Convert Components to Spring Beans
-**Priority**: HIGH | **Risk**: MEDIUM | **Estimated Time**: 2 hours
+#### Step 2.2: Implement Spring Batch Job
+**Priority**: HIGH | **Risk**: MEDIUM | **Estimated Time**: 3 hours
 
 **Actions**:
-1. Add `@Component` annotations:
-   - `ReceiptLineParser` → `@Component`
-   - `ReceiptItemTaxEvaluator` → `@Component`
-   - `InvoicePrinter` → `@Component`
-2. Externalize configuration:
+1. Create batch job configuration:
+   - **ItemReader**: `FlatFileItemReader` to read receipt lines from input file
+   - **ItemProcessor**: Wrap `ReceiptLineParser` and `ReceiptItemTaxEvaluator` 
+   - **ItemWriter**: Wrap `InvoicePrinter` for output
+2. Configure job steps and chunk size
+3. Externalize configuration:
    - Move hardcoded values (tax rates, keywords) to `application.properties`
    - Use `@Value` or `@ConfigurationProperties` for injection
-3. Add constructor-based dependency injection
-4. Create service layer if needed:
-   - `InvoiceProcessingService` to orchestrate the pipeline
+4. Add job parameters for input/output file paths
+
+**Batch Job Flow**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Invoice Processing Job                    │
+├─────────────────────────────────────────────────────────────┤
+│  Step: processInvoices                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │  ItemReader  │→│ItemProcessor │→│  ItemWriter  │       │
+│  │  (File Read) │  │ (Parse+Tax)  │  │   (Print)    │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Verification**:
-- Components auto-wire correctly
+- Batch job executes successfully
+- Same output as original application
 - Configuration properties inject properly
-- Integration tests pass
 
 #### Step 2.3: Update Testing Strategy
 **Priority**: HIGH | **Risk**: LOW | **Estimated Time**: 1.5 hours
@@ -150,39 +170,73 @@ src/main/java/it/slager/exercises/invoicing/
 - Integration tests pass with Spring context
 - Test execution time remains reasonable
 
-#### Step 2.4: Add Spring Boot Features (Optional)
-**Priority**: LOW | **Risk**: LOW | **Estimated Time**: 2-3 hours
+#### Step 2.4: CLI Interface
+**Priority**: HIGH | **Risk**: LOW | **Estimated Time**: 1 hour
 
-**Optional Enhancements**:
-1. Add REST API endpoint:
-   - POST `/api/invoices/process` to process receipts
-   - GET `/api/invoices/{id}` to retrieve processed invoices
-2. Add CommandLineRunner for existing CLI functionality
-3. Add Actuator for health checks and metrics
-4. Add validation with `spring-boot-starter-validation`
-5. Add OpenAPI/Swagger documentation
+**Actions**:
+1. Implement `CommandLineRunner` or use Spring Boot's command-line argument support
+2. Accept input file path as command-line argument
+3. Support output redirection or file output
+4. Maintain dataflow compatibility (input format → output format)
+
+**CLI Usage**:
+```bash
+# Run with Docker
+docker run -v /path/to/data:/data invoice-processor /data/input.txt
+
+# Or with JAR
+java -jar invoice-processor.jar /path/to/input.txt
+```
 
 **Verification**:
-- API endpoints respond correctly
-- CLI runner works as before
-- Documentation is accessible
+- CLI accepts input file argument
+- Dataflow produces same results as original application
+- Works seamlessly in Docker container
 
-### Phase 3: Spring Batch Integration (Optional - Future Enhancement)
+### Phase 3: Docker Containerization
 
-**When to Consider**:
-- Processing large volumes of receipts from files
-- Need for job scheduling and monitoring
-- Requirement for chunk processing and retry logic
-- Need for job persistence and restart capability
+#### Step 3.1: Create Dockerfile
+**Priority**: HIGH | **Risk**: LOW | **Estimated Time**: 1 hour
 
-**High-Level Approach** (if needed):
-1. Add `spring-boot-starter-batch` dependency
-2. Create batch job configuration:
-   - **ItemReader**: Read receipt lines from file
-   - **ItemProcessor**: Parse and evaluate taxes
-   - **ItemWriter**: Print to output
-3. Add job launcher and scheduling
-4. Add job repository configuration
+**Actions**:
+1. Create multi-stage `Dockerfile`:
+   - Build stage: Use Maven image to build the application
+   - Runtime stage: Use slim JRE 21 image for final container
+2. Configure entry point for CLI execution
+3. Optimize image size
+
+**Dockerfile Structure**:
+```dockerfile
+# Build stage
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+**Verification**:
+- Docker image builds successfully
+- Image size is reasonable (< 300MB)
+
+#### Step 3.2: Docker Compose and CI/CD Integration
+**Priority**: MEDIUM | **Risk**: LOW | **Estimated Time**: 1 hour
+
+**Actions**:
+1. Create `docker-compose.yml` for local development/testing
+2. Update CI/CD pipelines to build and push Docker images
+3. Add image tagging strategy (version, latest, commit hash)
+
+**Verification**:
+- `docker-compose up` works correctly
+- CI/CD pipeline builds and pushes images
+- Images are properly tagged
 
 ## Risk Assessment
 
@@ -221,10 +275,15 @@ src/main/java/it/slager/exercises/invoicing/
 - Rebuild with Java 7
 
 ### Phase 2 Rollback
-- Remove Spring dependencies from `pom.xml`
+- Remove Spring Batch dependencies from `pom.xml`
 - Delete Spring configuration files
 - Remove Spring annotations from code
-- Restore constructor parameters
+- Restore original implementation
+
+### Phase 3 Rollback
+- Delete Dockerfile and docker-compose.yml
+- Remove Docker-related CI/CD configurations
+- Revert to JAR-based deployment
 
 ## Timeline Estimation
 
@@ -233,32 +292,23 @@ src/main/java/it/slager/exercises/invoicing/
 | Phase 1.1: Build Config | 30 min | Immediate |
 | Phase 1.2: Dependencies | 20 min | Phase 1.1 |
 | Phase 1.3: Code Modernization | 1 hour | Phase 1.2 |
-| Phase 2.1: Spring Boot Setup | 2 hours | Phase 1.3 |
-| Phase 2.2: Spring Beans | 2 hours | Phase 2.1 |
+| Phase 2.1: Spring Batch Setup | 2 hours | Phase 1.3 |
+| Phase 2.2: Batch Job Implementation | 3 hours | Phase 2.1 |
 | Phase 2.3: Testing | 1.5 hours | Phase 2.2 |
-| Phase 2.4: Optional Features | 2-3 hours | Phase 2.3 |
-| **Total (Core)** | **~9 hours** | |
-| **Total (with Optional)** | **~12 hours** | |
+| Phase 2.4: CLI Interface | 1 hour | Phase 2.3 |
+| Phase 3.1: Dockerfile | 1 hour | Phase 2.4 |
+| Phase 3.2: Docker CI/CD | 1 hour | Phase 3.1 |
+| **Total** | **~12 hours** | |
 
-## Questions for Stakeholders
+## ~~Questions for Stakeholders~~ Decisions Made
 
-1. **Java Version**: Should we target Java 21 (latest LTS) or Java 17 (more conservative)?
-   - **Recommendation**: Java 21 for long-term support and modern features
-
-2. **Spring Framework Approach**: Spring Boot with custom pipeline or Spring Batch?
-   - **Recommendation**: Start with custom pipeline, evaluate Spring Batch later
-
-3. **Application Type**: Should this remain a CLI application or add REST API?
-   - **Recommendation**: Keep CLI primary, REST API as optional enhancement
-
-4. **Backward Compatibility**: Should the application maintain the same CLI interface?
-   - **Recommendation**: Yes, maintain existing interface
-
-5. **Deployment Target**: Where will this application be deployed?
-   - **Impact**: Affects containerization and packaging decisions
-
-6. **Breaking Changes**: Are breaking changes acceptable during migration?
-   - **Recommendation**: Minimize breaking changes, especially in public API
+| Question | Decision |
+|----------|----------|
+| Java Version | ✅ **Java 21** |
+| Spring Framework Approach | ✅ **Spring Batch** |
+| Application Type | ✅ **CLI** |
+| Backward Compatibility | ✅ **CLI breaking changes OK, dataflow must work as-is** |
+| Deployment Target | ✅ **Docker Image** |
 
 ## Success Criteria
 
@@ -269,32 +319,45 @@ src/main/java/it/slager/exercises/invoicing/
 - ✅ CI/CD pipeline updated and passing
 
 ### Phase 2 Success
-- ✅ Spring Boot application runs successfully
-- ✅ All components managed by Spring
+- ✅ Spring Batch job runs successfully
+- ✅ All components integrated with Spring Batch
 - ✅ Configuration externalized
 - ✅ All tests pass with Spring context
-- ✅ Same functionality as before migration
-- ✅ Documentation updated
+- ✅ Dataflow produces same results as original
+- ✅ CLI interface works correctly
+
+### Phase 3 Success
+- ✅ Docker image builds successfully
+- ✅ Container runs and processes files correctly
+- ✅ CI/CD pipeline builds and pushes images
+- ✅ Image size is optimized
 
 ## Post-Migration Tasks
 
 1. Update README.md with new requirements and setup instructions
-2. Update CI/CD pipelines (Travis CI, Jenkins)
+2. Update CI/CD pipelines (Travis CI, Jenkins) for Docker builds
 3. Document new configuration options
-4. Create migration guide for other developers
-5. Update SonarQube configuration if needed
-6. Consider adding:
-   - Docker support
+4. Create Docker Hub or container registry setup
+5. Add container health checks
+6. Document Docker usage and deployment instructions
+7. Consider adding:
    - Kubernetes deployment manifests
+   - Helm charts
    - Performance benchmarks
 
 ## Conclusion
 
-This migration plan provides a structured approach to modernizing the invoice processing application. The phased approach allows for incremental changes with validation at each step, minimizing risk while maximizing benefits of modern Java features and Spring Framework capabilities.
+This migration plan provides a structured approach to modernizing the invoice processing application. Based on stakeholder decisions, the application will:
+- Upgrade to **Java 21** (latest LTS)
+- Use **Spring Batch** for robust batch processing
+- Maintain **CLI** interface
+- Be delivered as a **Docker image**
 
-**Recommended Next Steps**:
-1. Review and approve this migration plan
-2. Address any questions or concerns
-3. Execute Phase 1 (Java 21 upgrade)
-4. Evaluate results before proceeding to Phase 2
-5. Make decision on Spring Batch vs. custom pipeline based on requirements
+The phased approach allows for incremental changes with validation at each step, minimizing risk while maximizing benefits of modern Java features and Spring Batch capabilities.
+
+**Next Steps**:
+1. ~~Review and approve this migration plan~~ ✅ Approved
+2. Execute Phase 1 (Java 21 upgrade)
+3. Execute Phase 2 (Spring Batch integration)
+4. Execute Phase 3 (Docker containerization)
+5. Verify dataflow produces same results
